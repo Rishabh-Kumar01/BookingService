@@ -23,6 +23,16 @@ module.exports = {
         defaultValue: "InProcess",
         values: ["InProcess", "Cancelled", "Booked"],
       },
+      noOfSeats: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 1,
+      },
+      totalCost: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
