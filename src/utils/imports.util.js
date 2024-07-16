@@ -10,4 +10,5 @@ module.exports = {
   bodyParser: require("body-parser"),
   sequelize: require("sequelize"),
   responseCodes: require("http-status-codes"),
+  axios: require("axios"),
 };
