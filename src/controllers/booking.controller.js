@@ -41,7 +41,29 @@ async function destroy(req, res) {
   }
 }
 
+const getBookingsByUserId = async (req, res) => {
+  try {
+    const response = await bookingService.getBookingsByUserId(
+      req.params.userId
+    );
+    return res.status(StatusCodes.OK).json({
+      message: "Bookings fetched successfully",
+      success: true,
+      error: {},
+      data: response.length === 0 ? "No bookings found for the user" : response,
+    });
+  } catch (error) {
+    return res.status(error.statusCode).json({
+      message: error.message,
+      success: false,
+      error: error.explanation,
+      data: {},
+    });
+  }
+};
+
 module.exports = {
   create,
   destroy,
+  getBookingsByUserId,
 };

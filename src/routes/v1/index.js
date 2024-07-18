@@ -10,4 +10,5 @@ router.post(
 
 router.delete("/bookings/:bookingId", BookingController.destroy);
 
+router.get("/bookings/:userId", BookingController.getBookingsByUserId);
 module.exports = router;

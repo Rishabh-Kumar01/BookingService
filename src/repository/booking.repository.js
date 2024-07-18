@@ -42,8 +42,8 @@ class BookingRepository {
       }
       throw new AppError(
         "RepositoryError",
-        "Cannot create booking",
-        "There was some issue while creating the booking. Please try again",
+        "Cannot update booking",
+        "There was some issue while updating the booking. Please try again",
         StatusCodes.INTERNAL_SERVER_ERROR
       );
     }
@@ -63,8 +63,50 @@ class BookingRepository {
       }
       throw new AppError(
         "RepositoryError",
-        "Cannot create booking",
-        "There was some issue while creating the booking. Please try again",
+        "Cannot delete booking",
+        "There was some issue while deleting the booking. Please try again",
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async findOne(bookingId) {
+    try {
+      const booking = await Booking.findOne({
+        where: {
+          id: bookingId,
+        },
+      });
+      return booking;
+    } catch (error) {
+      if (error.name === "SequelizeValidationError") {
+        throw new ValidationError(error);
+      }
+      throw new AppError(
+        "RepositoryError",
+        `Cannot find booking with id ${bookingId}`,
+        "There was some issue while finding the Booking. Please try again",
+        StatusCodes.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  async findBookingsByUserId(userId) {
+    try {
+      const bookings = await Booking.findAll({
+        where: {
+          userId,
+        },
+      });
+      return bookings;
+    } catch (error) {
+      if (error.name === "SequelizeValidationError") {
+        throw new ValidationError(error);
+      }
+      throw new AppError(
+        "RepositoryError",
+        `Cannot find bookings for user with id ${userId}`,
+        "There was some issue while finding the bookings. Please try again",
         StatusCodes.INTERNAL_SERVER_ERROR
       );
     }
