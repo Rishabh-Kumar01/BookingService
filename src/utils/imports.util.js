@@ -11,4 +11,5 @@ module.exports = {
   sequelize: require("sequelize"),
   responseCodes: require("http-status-codes"),
   axios: require("axios"),
+  amqplib: require("amqplib"),
 };
