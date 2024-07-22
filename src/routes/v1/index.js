@@ -3,7 +3,7 @@ const { BookingController } = require("../../controllers/index.controller");
 const { BookingMiddleware } = require("../../middlewares/index.middleware");
 
 // Create the bookingController instance
-const bookingController = new BookingController();
+const bookingController = BookingController.getInstance();
 
 // Define the routes
 router.post(

@@ -4,6 +4,13 @@ const { ValidationError, AppError } =
 const { StatusCodes } = require("../utils/imports.util").responseCodes;
 
 class BookingRepository {
+  static getInstance() {
+    if (!BookingRepository.instance) {
+      BookingRepository.instance = new BookingRepository();
+    }
+    return BookingRepository.instance;
+  }
+
   async create(data) {
     try {
       const booking = await Booking.create({

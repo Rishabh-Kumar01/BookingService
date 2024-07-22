@@ -9,8 +9,17 @@ const { axios } = require("../utils/imports.util");
 
 class BookingService {
   constructor(channel) {
-    this.bookingRepository = new BookingRepository();
+    this.bookingRepository = BookingRepository.getInstance();
     this.channel = channel;
+  }
+
+  static getInstance(channel) {
+    if (!BookingService.instance) {
+      BookingService.instance = new BookingService(channel);
+    } else if (channel) {
+      BookingService.instance.channel = channel;
+    }
+    return BookingService.instance;
   }
 
   async create(data, token) {
@@ -30,7 +39,6 @@ class BookingService {
         },
       });
       const user = userResponse.data.data;
-      console.log(user, "user");
       if (!user) {
         throw new errorHandler.ServiceError(
           "Something went wrong in the booking process",
@@ -49,7 +57,6 @@ class BookingService {
       const getFlightRequestUrl = `${FLIGHT_SERVICE_URL}/api/v1/flights/${flightId}`;
       const flightResponse = await axios.get(getFlightRequestUrl);
       const flight = flightResponse.data.data;
-      console.log(flight, "flight");
       if (!flight) {
         throw new errorHandler.ServiceError(
           "Something went wrong in the booking process",

@@ -17,6 +17,13 @@ class BookingController {
     this.getBookingsByUserId = this.getBookingsByUserId.bind(this);
   }
 
+  static getInstance() {
+    if (!BookingController.instance) {
+      BookingController.instance = new BookingController();
+    }
+    return BookingController.instance;
+  }
+
   setChannel(channel) {
     this.bookingService = new BookingService(channel);
   }
