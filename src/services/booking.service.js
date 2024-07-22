@@ -8,8 +8,9 @@ const {
 const { axios } = require("../utils/imports.util");
 
 class BookingService {
-  constructor() {
+  constructor(channel) {
     this.bookingRepository = new BookingRepository();
+    this.channel = channel;
   }
 
   async create(data, token) {
@@ -99,7 +100,6 @@ class BookingService {
       }
 
       // Publish a message to the message broker for the booking confirmation
-      const channel = await messageQueue.createChannel();
       const payload = {
         data: {
           subject: "Booking Confirmation",
@@ -110,7 +110,7 @@ class BookingService {
         service: "CREATE_TICKET",
       };
       messageQueue.publishMessage(
-        channel,
+        this.channel,
         REMINDER_BINDING_KEY,
         JSON.stringify(payload)
       );

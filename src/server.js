@@ -5,17 +5,20 @@ const db = require("./models/index");
 
 const app = utils.imports.express();
 
-// Middlewares
-app.use(utils.imports.morgan("dev"));
-app.use(utils.imports.cors());
-app.use(utils.imports.helmet());
-app.use(utils.imports.compression());
-app.use(utils.imports.bodyParser.json());
-app.use(utils.imports.bodyParser.urlencoded({ extended: true }));
-app.use("/api", routes);
-
 // Server & Database Connection
-const setupAndStartServer = () => {
+const setupAndStartServer = async () => {
+  // Middlewares
+  app.use(utils.imports.morgan("dev"));
+  app.use(utils.imports.cors());
+  app.use(utils.imports.helmet());
+  app.use(utils.imports.compression());
+  app.use(utils.imports.bodyParser.json());
+  app.use(utils.imports.bodyParser.urlencoded({ extended: true }));
+
+  // Create a message queue channel and passing it to the routes
+  const channel = await utils.messageQueue.createChannel();
+  app.use("/api", routes(channel));
+
   app.listen(config.serverConfig.PORT, async () => {
     console.log(`SERVER IS RUNNING ON PORT ${config.serverConfig.PORT}`);
 

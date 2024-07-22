@@ -1,42 +1,30 @@
 const { BookingService } = require("../services/index.services");
 const { StatusCodes } = require("../utils/imports.util").responseCodes;
-const { createChannel, publishMessage } =
-  require("../utils/index.util").messageQueue;
-const { REMINDER_BINDING_KEY } = require("../config/serverConfig");
-
-const bookingService = new BookingService();
 
 class BookingController {
-  constructor() {}
+  // constructor(channel) {
+  //   this.bookingService = new BookingService(channel);
+  //   // Bind the methods to ensure correct 'this' context
+  //   // this.create = this.create.bind(this);
+  //   // this.destroy = this.destroy.bind(this);
+  //   // this.getBookingsByUserId = this.getBookingsByUserId.bind(this);
+  // }
 
-  async sendMessageToQueue(req, res) {
-    const channel = await createChannel();
-    const now = new Date();
-    const twoMinutesLater = new Date(now.getTime() + 2 * 60 * 1000);
-    const isoStringTwoMinutesLater = twoMinutesLater.toISOString();
+  constructor() {
+    this.bookingService = null;
+    this.create = this.create.bind(this);
+    this.destroy = this.destroy.bind(this);
+    this.getBookingsByUserId = this.getBookingsByUserId.bind(this);
+  }
 
-    const payload = {
-      data: {
-        subject: "This is notification from Queue",
-        content: "Some Queue will subsribed to this message",
-        recepientEmail: "sam12quick@gmail.com",
-        notificationTime: isoStringTwoMinutesLater,
-      },
-      service: "CREATE_TICKET",
-    };
-    publishMessage(channel, REMINDER_BINDING_KEY, JSON.stringify(payload));
-    return res.status(StatusCodes.OK).json({
-      message: "Message sent to the queue",
-      success: true,
-      error: {},
-      data: {},
-    });
+  setChannel(channel) {
+    this.bookingService = new BookingService(channel);
   }
 
   async create(req, res) {
     try {
       const token = req.headers["x-access-token"];
-      const response = await bookingService.create(req.body, token);
+      const response = await this.bookingService.create(req.body, token);
       return res.status(StatusCodes.OK).json({
         message: "Booking created successfully",
         success: true,
@@ -44,18 +32,21 @@ class BookingController {
         data: response,
       });
     } catch (error) {
-      return res.status(error.statusCode).json({
-        message: error.message,
-        success: false,
-        error: error.explanation,
-        data: {},
-      });
+      console.log(error, "Error in booking controller");
+      return res
+        .status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({
+          message: error.message || "Something went wrong",
+          success: false,
+          error: error.explanation || {},
+          data: {},
+        });
     }
   }
 
   async destroy(req, res) {
     try {
-      const response = await bookingService.destroy(req.params.bookingId);
+      const response = await this.bookingService.destroy(req.params.bookingId);
       return res.status(StatusCodes.OK).json({
         message: "Booking deleted successfully",
         success: true,
@@ -63,18 +54,20 @@ class BookingController {
         data: response,
       });
     } catch (error) {
-      return res.status(error.statusCode).json({
-        message: error.message,
-        success: false,
-        error: error.explanation,
-        data: {},
-      });
+      return res
+        .status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({
+          message: error.message || "Something went wrong",
+          success: false,
+          error: error.explanation || {},
+          data: {},
+        });
     }
   }
 
   async getBookingsByUserId(req, res) {
     try {
-      const response = await bookingService.getBookingsByUserId(
+      const response = await this.bookingService.getBookingsByUserId(
         req.params.userId
       );
       return res.status(StatusCodes.OK).json({
@@ -85,12 +78,14 @@ class BookingController {
           response.length === 0 ? "No bookings found for the user" : response,
       });
     } catch (error) {
-      return res.status(error.statusCode).json({
-        message: error.message,
-        success: false,
-        error: error.explanation,
-        data: {},
-      });
+      return res
+        .status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({
+          message: error.message || "Something went wrong",
+          success: false,
+          error: error.explanation || {},
+          data: {},
+        });
     }
   }
 }
