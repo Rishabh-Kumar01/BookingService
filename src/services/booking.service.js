@@ -1,6 +1,10 @@
 const { BookingRepository } = require("../repository/index.repository");
-const { ServiceError } = require("../utils/index.util").errorHandler;
-const { FLIGHT_SERVICE_URL } = require("../config/serverConfig");
+const { errorHandler, messageQueue } = require("../utils/index.util");
+const {
+  FLIGHT_SERVICE_URL,
+  AUTH_SERVICE_URL,
+  REMINDER_BINDING_KEY,
+} = require("../config/serverConfig");
 const { axios } = require("../utils/imports.util");
 
 class BookingService {
@@ -8,12 +12,35 @@ class BookingService {
     this.bookingRepository = new BookingRepository();
   }
 
-  async create(data) {
+  async create(data, token) {
     try {
+      // Validate the User Logged In and get the user details
+      const userId = data.userId;
+      if (!userId) {
+        throw new errorHandler.ServiceError(
+          "Something went wrong in the booking process",
+          "UserId is missing"
+        );
+      }
+      const getUserRequestUrl = `${AUTH_SERVICE_URL}/api/v1/isAuthenticated`;
+      const userResponse = await axios.get(getUserRequestUrl, {
+        headers: {
+          "x-access-token": token,
+        },
+      });
+      const user = userResponse.data.data;
+      console.log(user, "user");
+      if (!user) {
+        throw new errorHandler.ServiceError(
+          "Something went wrong in the booking process",
+          "User not found"
+        );
+      }
+
       // Get the flight details
       const flightId = data.flightId;
       if (!flightId) {
-        throw new ServiceError(
+        throw new errorHandler.ServiceError(
           "Something went wrong in the booking process",
           "FlightId is missing"
         );
@@ -23,7 +50,7 @@ class BookingService {
       const flight = flightResponse.data.data;
       console.log(flight, "flight");
       if (!flight) {
-        throw new ServiceError(
+        throw new errorHandler.ServiceError(
           "Something went wrong in the booking process",
           `Flight with id ${flightId} not found`
         );
@@ -32,7 +59,7 @@ class BookingService {
 
       // Check if the no of seats requested is greater than the available seats
       if (data.noOfSeats > flight.availableSeats) {
-        throw new ServiceError(
+        throw new errorHandler.ServiceError(
           "Something went wrong in the booking process",
           "No of seats requested is greater than available seats"
         );
@@ -47,7 +74,7 @@ class BookingService {
       const booking = await this.bookingRepository.create(bookingPayload);
 
       if (!booking) {
-        throw new ServiceError(
+        throw new errorHandler.ServiceError(
           "Something went wrong in the booking process",
           "The booking could not be created"
         );
@@ -64,11 +91,35 @@ class BookingService {
         status: "Booked",
       });
 
+      if (!finalBooking) {
+        throw new errorHandler.ServiceError(
+          "Something went wrong in the booking process",
+          "The booking could not be updated"
+        );
+      }
+
+      // Publish a message to the message broker for the booking confirmation
+      const channel = await messageQueue.createChannel();
+      const payload = {
+        data: {
+          subject: "Booking Confirmation",
+          content: `Your booking for flight ${flight.flightNumber} has been confirmed`,
+          recepientEmail: user.email,
+          notificationTime: new Date().toISOString(),
+        },
+        service: "CREATE_TICKET",
+      };
+      messageQueue.publishMessage(
+        channel,
+        REMINDER_BINDING_KEY,
+        JSON.stringify(payload)
+      );
+
       return finalBooking;
     } catch (error) {
       console.log(error, "Error in booking service");
 
-      if (error instanceof ServiceError) {
+      if (error instanceof errorHandler.ServiceError) {
         throw error;
       }
 
@@ -76,7 +127,7 @@ class BookingService {
         throw error;
       }
 
-      throw new ServiceError();
+      throw new errorHandler.ServiceError();
     }
   }
 
@@ -86,7 +137,7 @@ class BookingService {
       const booking = await this.bookingRepository.findOne(bookingId);
 
       if (!booking) {
-        throw new ServiceError(
+        throw new errorHandler.ServiceError(
           "Booking not found",
           "The booking you are trying to delete does not exist"
         );
@@ -96,7 +147,7 @@ class BookingService {
       const bookingDeleted = await this.bookingRepository.destroy(bookingId);
 
       if (!bookingDeleted) {
-        throw new ServiceError(
+        throw new errorHandler.ServiceError(
           "Something went wrong in the booking deletion process",
           "The booking could not be deleted"
         );
@@ -114,10 +165,10 @@ class BookingService {
 
       return bookingDeleted;
     } catch (error) {
-      if (error instanceof ServiceError) {
+      if (error instanceof errorHandler.ServiceError) {
         throw error;
       }
-      throw new ServiceError();
+      throw new errorHandler.ServiceError();
     }
   }
 
@@ -128,7 +179,7 @@ class BookingService {
       );
       console.log(bookings, "bookings");
       if (!bookings) {
-        throw new ServiceError(
+        throw new errorHandler.ServiceError(
           "Something went wrong in fetching the bookings",
           "The bookings could not be fetched"
         );
@@ -160,10 +211,10 @@ class BookingService {
       });
       return userBookings;
     } catch (error) {
-      if (error instanceof ServiceError) {
+      if (error instanceof errorHandler.ServiceError) {
         throw error;
       }
-      throw new ServiceError();
+      throw new errorHandler.ServiceError();
     }
   }
 }
