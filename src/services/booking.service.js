@@ -46,6 +46,13 @@ class BookingService {
         );
       }
 
+      if (user.id !== parseInt(userId)) {
+        throw new errorHandler.ServiceError(
+          "Something went wrong in the booking process",
+          "User id does not match with the user id in the request"
+        );
+      }
+
       // Get the flight details
       const flightId = data.flightId;
       if (!flightId) {
@@ -109,12 +116,14 @@ class BookingService {
       // Publish a message to the message broker for the booking confirmation
       const payload = {
         data: {
-          subject: "Booking Confirmation",
-          content: `Your booking for flight ${flight.flightNumber} has been confirmed`,
-          recepientEmail: user.email,
+          bookingId: finalBooking.id,
+          flightId: finalBooking.flightId,
+          flightNumber: flight.flightNumber,
+          recipientEmail: user.email,
           notificationTime: new Date().toISOString(),
+          departureTime: flight.departureTime,
         },
-        service: "CREATE_TICKET",
+        service: "CREATE_BOOKING",
       };
       messageQueue.publishMessage(
         this.channel,
