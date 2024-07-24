@@ -159,6 +159,16 @@ class BookingService {
         );
       }
 
+      const getUserRequestUrl = `${AUTH_SERVICE_URL}/api/v1/users/${booking.userId}`;
+      const userResponse = await axios.get(getUserRequestUrl);
+      const user = userResponse.data.data;
+      if (!user) {
+        throw new errorHandler.ServiceError(
+          "Something went wrong in the booking process",
+          "User not found"
+        );
+      }
+
       // Delete the booking
       const bookingDeleted = await this.bookingRepository.destroy(bookingId);
 
@@ -178,6 +188,24 @@ class BookingService {
       await axios.patch(updateFlightRequestUrl, {
         availableSeats: flight.availableSeats + booking.noOfSeats,
       });
+
+      if (bookingDeleted) {
+        const payload = {
+          data: {
+            bookingId: booking.id,
+            flightId: booking.flightId,
+            recipientEmail: user.email,
+            flightNumber: flight.flightNumber,
+            notificationTime: new Date().toISOString(),
+          },
+          service: "CANCEL_BOOKING",
+        };
+        messageQueue.publishMessage(
+          this.channel,
+          REMINDER_BINDING_KEY,
+          JSON.stringify(payload)
+        );
+      }
 
       return bookingDeleted;
     } catch (error) {
